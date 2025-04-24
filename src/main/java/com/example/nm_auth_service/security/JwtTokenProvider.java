@@ -2,60 +2,69 @@ package com.example.nm_auth_service.security;
 
 import com.example.nm_auth_service.model.User;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
+import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
 
-    @Value("3fN#7k!d9$Lp@XrTzQ1VwUeSgYjHmN2b")
-    private String jwtSecret;
+    @Value("${jwt.secret}")
+    private String jwtSecretRaw;
+
+    private Key jwtSecretKey;
 
     private final long jwtAccessTokenExpirationMs = 1000 * 60 * 15; // 15 minutes
     private final long jwtRefreshTokenExpirationMs = 1000 * 60 * 60 * 24 * 7; // 7 days
 
-    // Generate Access Token
+    @PostConstruct
+    public void init() {
+        this.jwtSecretKey = Keys.hmacShaKeyFor(jwtSecretRaw.getBytes());
+    }
+
     public String generateToken(Integer userId) {
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("userId", userId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtAccessTokenExpirationMs))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret)
+                .signWith(jwtSecretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // Generate Refresh Token
     public String generateRefreshToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("userId", user.getUserId())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtRefreshTokenExpirationMs))
-                .signWith(SignatureAlgorithm.HS256, jwtSecret)
+                .signWith(jwtSecretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // Extract userId (from subject)
     public Integer getUserIdFromToken(String token) {
         return Integer.parseInt(
-                Jwts.parser()
-                        .setSigningKey(jwtSecret)
+                Jwts.parserBuilder()
+                        .setSigningKey(jwtSecretKey)
+                        .build()
                         .parseClaimsJws(token)
                         .getBody()
                         .getSubject()
         );
     }
 
-    // Validate Token
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(jwtSecretKey)
+                    .build()
+                    .parseClaimsJws(token);
             return true;
-        } catch (SignatureException | MalformedJwtException | ExpiredJwtException |
-                 UnsupportedJwtException | IllegalArgumentException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }

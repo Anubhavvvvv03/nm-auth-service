@@ -51,15 +51,34 @@ public class AuthServiceImpl implements AuthService {
         // Save the user
         userRepository.save(user);
 
+        // Generate JWT tokens
+        String jwtToken = jwtTokenProvider.generateToken(user.getUserId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+
+        // Store refresh token in DB
+        RefreshToken refreshTokenEntity = new RefreshToken();
+        refreshTokenEntity.setUser(user);
+        refreshTokenEntity.setRefreshToken(refreshToken);
+        refreshTokenEntity.setCreatedAt(LocalDateTime.now());
+        refreshTokenEntity.setExpiresAt(LocalDateTime.now().plusDays(7));
+        refreshTokenRepository.save(refreshTokenEntity);
+
+        // Construct JwtResponse
+        JwtResponse jwtResponse = new JwtResponse();
+        jwtResponse.setJwtToken(jwtToken);
+        jwtResponse.setRefreshToken(refreshToken);
+
         // Build and return RegisterResponse
         RegisterResponse response = new RegisterResponse();
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setPhone(user.getPhone());
         response.setRole(user.getRole());
+        response.setJwtResponse(jwtResponse); // 🟢 now set!
 
         return response;
     }
+
 
     @Override
     public Optional<User> loadUserByUserId(Integer userId) {
@@ -111,8 +130,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public JwtResponse refreshToken(String refreshToken) {
-        RefreshToken refreshTokenEntity = refreshTokenRepository.findByRefreshToken(refreshToken)
+    public JwtResponse refreshToken(RefreshTokenRequest refreshTokenRequest) {
+        RefreshToken refreshTokenEntity = refreshTokenRepository.findByRefreshToken(refreshTokenRequest.getRefreshToken())
                 .orElseThrow(() -> new AuthenticationException("Invalid refresh token"));
 
         // Check if refresh token is expired
@@ -126,7 +145,7 @@ public class AuthServiceImpl implements AuthService {
         // Build JwtResponse
         JwtResponse jwtResponse = new JwtResponse();
         jwtResponse.setJwtToken(newJwtToken);
-        jwtResponse.setRefreshToken(refreshToken); // reuse existing refresh token
+        jwtResponse.setRefreshToken(refreshTokenRequest.getRefreshToken()); // reuse existing refresh token
 
         return jwtResponse;
     }

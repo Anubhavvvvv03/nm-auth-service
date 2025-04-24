@@ -27,10 +27,11 @@ public class AuthController {
         return authService.login(request);
     }
 
-    @PostMapping("/refresh")
-    public JwtResponse refresh(@RequestBody String refreshToken) {
-        return authService.refreshToken(refreshToken);
-    }
+    //Can be done in login api only
+//    @PostMapping("/access-token")
+//    public JwtResponse refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+//        return authService.refreshToken(refreshTokenRequest);
+//    }
 
     @GetMapping("/health-check")
     public String healthCheck(){

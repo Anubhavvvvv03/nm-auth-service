@@ -16,6 +16,6 @@ public interface AuthService {
     RegisterResponse register(RegisterRequest request);
 
 
-    JwtResponse refreshToken(String refreshToken);
+    JwtResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
 
 }
