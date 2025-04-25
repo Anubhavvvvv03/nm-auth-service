@@ -2,8 +2,9 @@ package com.example.nm_auth_service.controller;
 
 import com.example.nm_auth_service.dto.*;
 import com.example.nm_auth_service.service.AuthService;
-import com.example.nm_auth_service.service.impl.AuthServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -13,28 +14,30 @@ public class AuthController {
     @Autowired
     private final AuthService authService;
 
-    public AuthController(AuthServiceImpl authService) {
+    public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
     @PostMapping("/register")
-    public RegisterResponse register(@RequestBody RegisterRequest request) {
-      return authService.register(request);
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
+        RegisterResponse response = authService.register(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
-    //Can be done in login api only
-//    @PostMapping("/access-token")
-//    public JwtResponse refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
-//        return authService.refreshToken(refreshTokenRequest);
-//    }
+    @PostMapping("/access-token")
+    public ResponseEntity<JwtResponse> refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        JwtResponse response = authService.refreshToken(refreshTokenRequest);
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/health-check")
-    public String healthCheck(){
-        return "OK";
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("OK");
     }
 }
